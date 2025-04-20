@@ -8,16 +8,16 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static("public")); // serve frontend files
 
-// Initialize Dialogflow session client with service account key
+// Initialize Dialogflow session client
 const sessionClient = new dialogflow.SessionsClient({
-  keyFilename: "service-account.json", // your downloaded service account key file
+  keyFilename: "service-account.json", // your Dialogflow service account JSON
 });
 
 // Set your Dialogflow project ID
 const projectId = "resumeassistantchatbot-aork";
 
 app.post("/message", async (req, res) => {
-  const sessionId = Math.random().toString(36).substring(7); // random session ID
+  const sessionId = Math.random().toString(36).substring(7);
   const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
 
   const request = {
@@ -34,18 +34,26 @@ app.post("/message", async (req, res) => {
     const responses = await sessionClient.detectIntent(request);
     const result = responses[0].queryResult;
 
-    // Check for custom payload in response messages
+    // Check for custom payload in fulfillmentMessages
     if (result.fulfillmentMessages) {
       const payloadMsg = result.fulfillmentMessages.find(msg => msg.payload);
       if (payloadMsg) {
-        res.json({ reply: payloadMsg.payload.fields });
+        res.json({
+          reply: {
+            type: "richContent",
+            content: payloadMsg.payload.fields
+          }
+        });
         return;
       }
     }
 
-    // Fallback: If no custom payload, send fulfillmentText
+    // Else, send plain text response
     res.json({
-      reply: result.fulfillmentText,
+      reply: {
+        type: "text",
+        content: result.fulfillmentText
+      }
     });
 
   } catch (error) {
@@ -54,7 +62,7 @@ app.post("/message", async (req, res) => {
   }
 });
 
-// Start the server
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
