@@ -1,12 +1,14 @@
-document.getElementById("user-input").addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        event.preventDefault();  // Prevent new line in input
-        sendMessage();
-    }
+// Handle Enter key for sending message
+document.getElementById("user-input").addEventListener("keypress", function (event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    sendMessage();
+  }
 });
+
 function sendMessage() {
   const inputField = document.getElementById("user-input");
-  const message = inputField.value;
+  const message = inputField.value.trim();
 
   if (!message) return;
 
@@ -27,11 +29,16 @@ function sendMessage() {
     },
     body: JSON.stringify({ message })
   })
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`);
+      }
+      return res.json();
+    })
     .then(data => {
       const reply = data.reply;
 
-      // Remove typing indicator and show actual response
+      // Remove typing indicator
       const typingDiv = document.querySelector(".typing");
       typingDiv && typingDiv.remove();
 
@@ -46,6 +53,14 @@ function sendMessage() {
     })
     .catch(err => {
       console.error("Error from server:", err);
+
+      // Remove typing indicator if present
+      const typingDiv = document.querySelector(".typing");
+      typingDiv && typingDiv.remove();
+
+      // Show error message to user
+      chat.innerHTML += `<div class="bot error">⚠️ Oops, something went wrong. Please try again.</div>`;
+      chat.scrollTop = chat.scrollHeight;
     });
 }
 
